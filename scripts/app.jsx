@@ -179,13 +179,8 @@ function Scene(initFrame, initNode) {
             path.pop();
         }
         var frame = {links: {}, nodes: {}};
-        if (a.indexOf('_') > -1) {
-            a = frame.links[a] = {};
-            b = frame.nodes[b] = {};
-        } else {
-            a = frame.nodes[a] = {};
-            b = frame.links[b] = {};
-        }
+        a = frame[a.indexOf('_') > -1 ? 'links' : 'nodes'][a] = {};
+        b = frame[b.indexOf('_') > -1 ? 'links' : 'nodes'][b] = {};
         a.stroke = isFwd ? PATH : '';
         b.stroke = CURR;
         frames.push(frame);
@@ -221,24 +216,30 @@ function Scene(initFrame, initNode) {
             }
             return this;
         },
-        mark: function() {
+        mark: function(suffix) {
             var frame = {nodes: {}},
                 id = path[path.length - 1];
             frame.nodes[id] = {
                 fill: DONE,
-                caption: id + '[' + (++marked) + ']'
+                caption: id + '[' + (++marked) + ']' + (suffix || '')
             };
             frames.push(frame);
             return this;
         },
         text: function(caption) {
-            var frame = {nodes: {}};
-            frame.nodes[path[path.length - 1]] = {caption: caption};
+            var frame = {nodes: {}},
+                last = path[path.length - 1].split('_');
+            frame.nodes[last[last.length - 1]] = {caption: caption};
             frames.push(frame);
+            return this;
+        },
+        jumpTo: function(step) {
+            move(path[path.length - 1], step, true);
             return this;
         },
         frame: function(frame) {
             frames.push(frame);
+            return this;
         },
         frames: function() {
             return frames;
@@ -290,6 +291,59 @@ var scenes = [
         .walk('B').mark()
         .walk('C', 'C_A').backTo('C').mark()
         .backTo('A').mark()
+        .frames(),
+    Scene({
+        width: 3,
+        height: 1,
+        nodes: {
+            A: {x: 1, y: 0},
+            B: {x: 2, y: 0},
+            C: {x: 0, y: 0}
+        },
+        links: {
+            A_B: {},
+            B_C: {dashed: true, through: ['Q', [1, -1]]},
+            C_A: {}
+        }
+    }, 'A')
+        .walk('B').mark()
+        .walk('C', 'C_A').text('A→C')
+        .backTo('A').mark()
+        .jumpTo('C').walk('C_A').backTo('C').mark()
+        .backTo('A')
+        .frames(),
+    Scene({
+        width: 5,
+        height: 3,
+        nodes: {
+            A: {x: 2, y: 0},
+            B: {x: 3, y: 1},
+            C: {x: 4, y: 1},
+            D: {x: 0, y: 1},
+            E: {x: 2, y: 2},
+            F: {x: 1, y: 1},
+            G: {x: 3, y: 2}
+        },
+        links: {
+            A_B: {through: ['Q', [2, 0.5]]}, B_C: {},
+            C_D: {dashed: true, through: ['C', [1, -1], [3, -1]]},
+            D_E: {through: ['C', [0, 2], [1, 2]]}, E_B: {},
+            E_F: {dashed: true, through: ['Q', [1.5, 2]]},
+            E_G: {}, F_A: {}, F_B: {}
+        }
+    }, 'A')
+        .walk('B', 'C').mark()
+        .walk('D', 'E', 'E_B').text('B→D')
+        .backTo('E').walk('G').mark()
+        .backTo('E').walk('F', 'F_A').text('A→F')
+        .backTo('F').walk('F_B').text('B→D,F')
+        .backTo('B').mark('→F')
+        .jumpTo('D').walk('E', 'E_B').backTo('E').walk('E_G').backTo('E').mark()
+        .walk('F', 'F_A').backTo('F').walk('F_B').backTo('D').mark()
+        .backTo('B').text('B[3]')
+        .jumpTo('F').walk('F_A').backTo('F').walk('F_B').backTo('A').mark()
+        .jumpTo('F').walk('F_A').backTo('F').walk('F_B').backTo('F').mark()
+        .backTo('A')
         .frames()
 ];
 
