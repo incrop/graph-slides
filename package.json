@@ -9,6 +9,5 @@
   "author": "Dmitry Starostin <incrop@yandex-team.ru>",
   "license": "ISC",
   "devDependencies": {
-    "react": "^0.13.3"
   }
 }
