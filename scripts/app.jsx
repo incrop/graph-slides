@@ -80,6 +80,16 @@ var SvgGraph = React.createClass({
                                stroke={node.stroke || 'black'} strokeWidth={STROKE_WIDTH}
                                fill={node.fill || 'white'} />
             }.bind(this))}
+            {Object.keys(frame.nodes || {}).map(function(id) {
+                var node = frame.nodes[id];
+                return <text key={id}
+                             x={(node.x + 1) * this.state.scaleX}
+                             y={(node.y + 1) * this.state.scaleY}
+                             dx={NODE_RADIUS} dy={NODE_RADIUS}
+                             fontFamily="Verdana" fontSize="30">
+                    {node.caption || id}
+                </text>
+            }.bind(this))}
         </svg>
     }
 });
@@ -160,7 +170,8 @@ var CURR = 'deeppink',
 function Scene(initFrame, initNode) {
     initFrame.nodes[initNode].stroke = CURR;
     var path = [initNode],
-        frames = [initFrame];
+        frames = [initFrame],
+        marked = 0;
     function move(a, b, isFwd) {
         if (isFwd) {
             path.push(b);
@@ -211,10 +222,23 @@ function Scene(initFrame, initNode) {
             return this;
         },
         mark: function() {
-            var frame = {nodes: {}};
-            frame.nodes[path[path.length - 1]] = {fill: DONE};
+            var frame = {nodes: {}},
+                id = path[path.length - 1];
+            frame.nodes[id] = {
+                fill: DONE,
+                caption: id + '[' + (++marked) + ']'
+            };
             frames.push(frame);
             return this;
+        },
+        text: function(caption) {
+            var frame = {nodes: {}};
+            frame.nodes[path[path.length - 1]] = {caption: caption};
+            frames.push(frame);
+            return this;
+        },
+        frame: function(frame) {
+            frames.push(frame);
         },
         frames: function() {
             return frames;
@@ -235,32 +259,31 @@ var scenes = [
             F: {x: 3, y: 1}
         },
         links: {
-            A_B: {}, B_C: {through: ['C', [2, 1], [2, 0.5]]},
-            A_C: {dashed: true},
-            A_D: {dashed: true, through: ['Q', [1, 2]]},
+            A_B: {}, B_C: {}, C_E: {},
+            C_A: {dashed: true, through: ['Q', [1, 0]]},
+            A_D: {dashed: true, through: ['C', [0, 2], [1, 2]]},
             D_E: {}, D_F: {}
         }
     }, 'A')
-        .walk('B', 'C').mark()
-        .backTo('B').mark()
+        .walk('B', 'C', 'E').mark()
+        .backTo('C').mark()
+        .walk('C_A').backTo('B').mark()
         .backTo('A').mark()
-        .walk('A_C').backTo('A')
-        .walk('D', 'E').mark()
-        .backTo('D').walk('F').mark()
+        .walk('D', 'D_E').backTo('D').walk('F').mark()
         .backTo('D').mark()
         .backTo('A')
         .frames(),
     Scene({
-        width: 2,
-        height: 2,
+        width: 3,
+        height: 1,
         nodes: {
-            A: {x: 0, y: 0},
-            B: {x: 1, y: 0},
-            C: {x: 0, y: 1}
+            A: {x: 1, y: 0},
+            B: {x: 2, y: 0},
+            C: {x: 0, y: 0}
         },
         links: {
             A_B: {},
-            B_C: {dashed: true, through: ['Q', [1, 1]]},
+            B_C: {dashed: true, through: ['Q', [1, -1]]},
             C_A: {}
         }
     }, 'A')
