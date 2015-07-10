@@ -159,7 +159,7 @@ var Slides = React.createClass({
         for (var i = 0; i <= framesCnt; i++) {
             frame = this.deepMerge(frame, scene[i]);
         }
-        return <SvgGraph frame={frame} colors={['', CURR, PATH]} />
+        return <SvgGraph frame={frame} colors={['', CURR, PATH, 'yellow']} />
     }
 });
 
@@ -216,9 +216,9 @@ function Scene(initFrame, initNode) {
             }
             return this;
         },
-        mark: function(suffix) {
+        mark: function(nodeId, suffix) {
             var frame = {nodes: {}},
-                id = path[path.length - 1];
+                id = nodeId || path[path.length - 1];
             frame.nodes[id] = {
                 fill: DONE,
                 caption: id + '[' + (++marked) + ']' + (suffix || '')
@@ -248,6 +248,24 @@ function Scene(initFrame, initNode) {
 }
 
 var scenes = [
+    Scene({
+        width: 3,
+        height: 1,
+        nodes: {
+            A: {x: 1, y: 0},
+            B: {x: 2, y: 0},
+            C: {x: 0, y: 0}
+        },
+        links: {
+            A_B: {},
+            A_C: {dashed: true},
+        }
+    }, 'A')
+        .walk('B').mark()
+        .backTo('A').mark()
+        .walk('C').mark()
+        .backTo('A')
+        .frames(),
     Scene({
         width: 4,
         height: 2,
@@ -306,11 +324,31 @@ var scenes = [
             C_A: {}
         }
     }, 'A')
-        .walk('B').mark()
+        .text('A').walk('B').mark()
         .walk('C', 'C_A').text('A→C')
         .backTo('A').mark()
         .jumpTo('C').walk('C_A').backTo('C').mark()
         .backTo('A')
+        .frames(),
+    Scene({
+        width: 3,
+        height: 2,
+        nodes: {
+            A: {x: 0, y: 1},
+            B: {x: 1, y: 1},
+            C: {x: 2, y: 1},
+            D: {x: 0, y: 0},
+            E: {x: 2, y: 0}
+        },
+        links: {
+            A_B: {}, B_C: {}, B_E: {}, E_D: {},
+            D_B: {through: ['Q', [0, 0.5]]},
+            C_D: {dashed: true, through: ['C', [3, -1], [1, -0.5]]}
+        }
+    }, 'A')
+        .walk('B', 'C').mark()
+        .walk('D', 'D_B').text('B→D')
+        .backTo('B').walk('E', 'D', 'D_B').text('B→D,A?')
         .frames(),
     Scene({
         width: 5,
@@ -337,13 +375,84 @@ var scenes = [
         .backTo('E').walk('G').mark()
         .backTo('E').walk('F', 'F_A').text('A→F')
         .backTo('F').walk('F_B').text('B→D,F')
-        .backTo('B').mark('→F')
+        .backTo('B').mark(null, 'D→F')
         .jumpTo('D').walk('E', 'E_B').backTo('E').walk('E_G').backTo('E').mark()
         .walk('F', 'F_A').backTo('F').walk('F_B').backTo('D').mark()
         .backTo('B').text('B[3]')
         .jumpTo('F').walk('F_A').backTo('F').walk('F_B').backTo('A').mark()
         .jumpTo('F').walk('F_A').backTo('F').walk('F_B').backTo('F').mark()
         .backTo('A')
+        .frames(),
+    Scene({
+        width: 5,
+        height: 3,
+        nodes: {
+            A: {x: 2, y: 0},
+            B: {x: 3, y: 1},
+            C: {x: 4, y: 1},
+            D: {x: 0, y: 1},
+            E: {x: 2, y: 2},
+            F: {x: 1, y: 1},
+            G: {x: 3, y: 2}
+        },
+        links: {
+            A_B: {through: ['Q', [2, 0.5]]}, B_C: {},
+            C_D: {dashed: true, through: ['C', [1, -1], [3, -1]]},
+            D_E: {through: ['C', [0, 2], [1, 2]]}, E_B: {},
+            E_F: {dashed: true, through: ['Q', [1.5, 2]]},
+            E_G: {}, F_A: {}, F_B: {}
+        }
+    }, 'A')
+        .walk('B', 'C').mark()
+        .walk('D', 'E', 'E_B').text('B→E')
+        .backTo('E').walk('G').mark()
+        .backTo('E').text('E(1)').walk('F', 'F_A').text('A→F')
+        .backTo('F').walk('F_B').text('B→E,F')
+        .backTo('F').text('F(2)')
+        .backTo('E').text('E(1)→D')
+        .backTo('D').text('D(3)')
+        .backTo('B').mark(null, '→E,F')
+        .frame({nodes: {B: {caption: 'B[3]'}, E: {stroke: CURR}, F: {stroke: CURR}}})
+        .mark('E', '→D')
+        .frame({nodes: {D: {stroke: CURR}, E: {stroke: '', caption: 'E[4]'}}})
+        .mark('D')
+        .frame({nodes: {D: {stroke: ''}, F: {stroke: ''}}})
+        .backTo('A').mark(null, '→F')
+        .frame({nodes: {A: {caption: 'A[6]'}, F: {stroke: CURR}}})
+        .mark('F')
+        .frame({nodes: {F: {stroke: ''}}})
+        .frames(),
+    Scene({
+        width: 3,
+        height: 2,
+        nodes: {
+            A: {x: 0, y: 1},
+            B: {x: 1, y: 1},
+            C: {x: 2, y: 1},
+            D: {x: 0, y: 0},
+            E: {x: 2, y: 0}
+        },
+        links: {
+            A_B: {}, B_C: {}, B_E: {}, E_D: {},
+            D_B: {through: ['Q', [0, 0.5]]},
+            C_D: {dashed: true, through: ['C', [3, -1], [1, -0.5]]}
+        }
+    }, 'A')
+        .walk('B', 'C').mark()
+        .walk('D', 'D_B').text('B→D')
+        .backTo('D').text('D(1)')
+        .backTo('B').walk('E', 'E_D').text('D(1)→E')
+        .backTo('E').text('E(2)→B')
+        .backTo('B').text('B(3)→D,A')
+        .backTo('A').text('A(4)?')
+        .text('A(4)')
+        .frame({nodes: {D: {stroke: CURR}, A: {stroke: ''}}})
+        .frame({nodes: {B: {stroke: PATH}, E: {stroke: PATH}}, links: {B_E: {stroke: PATH}, E_D: {stroke: PATH}}})
+        .frame({nodes: {B: {stroke: ''}, E: {stroke: ''}}, links: {B_E: {stroke: ''}, E_D: {stroke: ''}, D_B: {stroke: 'yellow'}}})
+        .mark('D')
+        .frame({nodes: {D: {stroke: ''}, E: {stroke: CURR}}}).mark('E')
+        .frame({nodes: {E: {stroke: ''}, B: {stroke: CURR}}}).mark('B')
+        .frame({nodes: {B: {stroke: ''}, A: {stroke: CURR}}}).mark()
         .frames()
 ];
 
